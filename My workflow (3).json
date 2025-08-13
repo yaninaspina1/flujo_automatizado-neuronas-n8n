@@ -1,0 +1,394 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f1f210f6-3d8b-4260-9365-47a0c26e716b",
+      "name": "Respondedor ",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -784
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepara fila de log para errores 400\nconst lead = $node[\"Sanitizar & Enriquecer\"].json || {};\nconst trim = v => (typeof v === 'string' ? v.trim() : v);\nconst email = (lead.email || '').toLowerCase().trim();\nconst name = trim(lead.name || '');\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/;\nconst reasons = [];\nif (!name) reasons.push('name_empty');\nif (!emailRegex.test(email)) reasons.push('email_invalid');\n\nreturn [{\n  json: {\n    Name: name || '',\n    Email: email || '',\n    Source: lead.source || '',\n    IP: lead.ip || '',\n    UserAgent: lead.userAgent || '',\n    ReceivedAt: lead.receivedAt || new Date().toISOString(),\n    ProcessedAt: new Date().toISOString(),\n    ErrorCode: 400,\n    ErrorReason: reasons.join('|') || 'validation_failed'\n  }\n}];"
+      },
+      "id": "e4de3921-a1f3-4ad9-b60a-9c99a4e5645b",
+      "name": "Preparar Log Error ",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "65f6713b-6f35-41b8-bad7-5e0d9a43315a",
+      "name": "Sheets - Log Error ",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        592,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "path": "webhook/leads-meet",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "94f197d1-efdd-4e06-b40f-175382464222",
+      "name": "Introducción de webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1376,
+        -512
+      ],
+      "webhookId": "e125eb21-d960-4b48-96c4-1c0bb4c9e10e"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Sanitiza & enriquece\nreturn items.map(item => {\n  const d = item.json || {};\n  const headers = item.headers || {};\n  const trim = v => (typeof v === 'string' ? v.trim() : v);\n  const lower = v => (typeof v === 'string' ? v.toLowerCase() : v);\n\n  const email = lower(trim(d.email || ''));\n  const name = trim(d.name || '');\n  const source = lower(trim(d.source || 'web'));\n\n  const ua = headers['user-agent'] || headers['User-Agent'] || '';\n  const xff = headers['x-forwarded-for'] || headers['X-Forwarded-For'] || '';\n  const ip = (xff && String(xff).split(',')[0].trim()) || headers['x-real-ip'] || headers['X-Real-IP'] || '';\n\n  return {\n    json: { ...d, name, email, source, userAgent: ua, ip, receivedAt: new Date().toISOString() }\n  };\n});"
+      },
+      "id": "b2d02195-14c7-4e7e-be65-8b53118c8e94",
+      "name": "Sanitizar & Enriquecer",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -464
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.name}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.email}}",
+              "operation": "regex",
+              "value2": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
+            }
+          ]
+        }
+      },
+      "id": "1ad9c976-fe72-47ec-940d-873d8c2fa485",
+      "name": "Validar lead",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Calcula slot 30min o usa meeting_at\nconst lead = $node[\"Sanitizar & Enriquecer1\"].json;\nconst now = new Date();\nlet start = lead.meeting_at ? new Date(lead.meeting_at) : new Date(now.getTime() + 30*60000);\nstart.setMinutes(start.getMinutes() < 30 ? 30 : 60, 0, 0);\nconst end = new Date(start.getTime() + 30*60000);\nreturn [{ json: { startISO: start.toISOString(), endISO: end.toISOString() } }];"
+      },
+      "id": "e4497528-cdcc-4e88-80b1-80c40d0f4bdd",
+      "name": "Calcular Slot de Cita",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        848,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "db457a11-21e4-4688-b298-d3a5dea5f5bd",
+      "name": "Responder 400 (no válido)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "f5edba08-d202-4d71-ae31-0933b7bae375",
+      "name": "Hojas de cálculo - Búsqueda por correo",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        832,
+        -784
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Determina exists y propaga datos del evento\nconst event = $node[\"Crear Evento (Google Meet)\"].json || {};\nconst exists = Object.keys(items[0].json || {}).length > 0;\nreturn [{\n  json: {\n    exists,\n    eventId: event.id,\n    meetLink: event.hangoutLink || event.htmlLink || '',\n    start: event.start?.dateTime || $node[\"Calcular Slot de Cita1\"].json.startISO,\n    end: event.end?.dateTime || $node[\"Calcular Slot de Cita1\"].json.endISO\n  }\n}];"
+      },
+      "id": "a9f41a54-9481-416c-ba7f-99ebc9c13bc9",
+      "name": "¿Existe en Sheets?",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        -784
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.exists}}",
+              "operation": "isEqual",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "26b8cc03-fb4f-4c22-8b81-4b5dbdb17173",
+      "name": "IF Deduplicar",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        -752
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "01e83ecc-eea1-4b44-acbd-3c83f95c94d5",
+      "name": "Hojas - Guardar Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2224,
+        -880
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@tu-dominio.com",
+        "toEmail": "={{$node[\"Sanitizar & Enriquecer\"].json.email}}",
+        "subject": "={{'Confirmación de cita – ' + $node[\"Sanitizar & Enriquecer\"].json.name}}",
+        "text": "Hola {{$node[\"Sanitizar & Enriquecer1\"].json.name}},\\n\\nAgendamos tu cita:\\n- Fecha/Hora: {{$node[\"¿Existe en Sheets?1\"].json.start}} (America/Argentina/Buenos_Aires)\\n- Google Meet: {{$node[\"¿Existe en Sheets?1\"].json.meetLink}}\\n\\nSi necesitás reprogramar, respondé a este correo.\\n¡Gracias!",
+        "options": {}
+      },
+      "id": "fd68affc-52ab-4f64-8f3d-f2e498b9ee3e",
+      "name": "Enviar Email con Meet",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        -688
+      ],
+      "webhookId": "6b25fcb8-9f89-4d40-9696-6e0bbc84534d",
+      "credentials": {
+        "smtp": {
+          "id": null,
+          "name": "SMTP (seleccionar)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "__CUSTOM_API_CALL__"
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        -416
+      ],
+      "id": "794a0d9e-242b-4486-a1cd-10c65ab055ad",
+      "name": "Google Calendar"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Preparar Log Error ": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Log Error ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Introducción de webhook": {
+      "main": [
+        [
+          {
+            "node": "Sanitizar & Enriquecer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitizar & Enriquecer": {
+      "main": [
+        [
+          {
+            "node": "Validar lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar lead": {
+      "main": [
+        [
+          {
+            "node": "Respondedor ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calcular Slot de Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 400 (no válido)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar Log Error ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hojas de cálculo - Búsqueda por correo": {
+      "main": [
+        [
+          {
+            "node": "¿Existe en Sheets?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Existe en Sheets?": {
+      "main": [
+        [
+          {
+            "node": "IF Deduplicar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Deduplicar": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email con Meet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hojas - Guardar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hojas - Guardar Lead": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email con Meet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respondedor ": {
+      "main": [
+        [
+          {
+            "node": "Hojas de cálculo - Búsqueda por correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Slot de Cita": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "85302283-2f46-4641-9f43-45c54be2da02",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a6d440fb11467b705bda3e6b2c07dba6a2bb7d1b202529f80c50930c9b66f1a3"
+  },
+  "id": "1c2Qe5ejIjRike1O",
+  "tags": []
+}
