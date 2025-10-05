@@ -1,31 +1,14 @@
-<<<<<<< HEAD
-# n8n – Captura de Leads con Calendly + Validación y CORS
-
-Este workflow de **n8n** recibe leads desde un **formulario web o chatbot (Christal)**, valida y normaliza los datos, y responde con un **link personalizado de Calendly** para agendar una reunión.  
-Incluye compatibilidad **CORS completa**, sanitización de datos y validación básica de `name` y `email`.
-
-> Flujo basado en `My workflow 5 (15).json`, activo en producción (`/webhook/leads-meet-zz`).
-=======
 # n8n – Ingesta de Leads con Cita en Google Meet + Registro en Google Sheets + Log de Errores 400
 
 Este workflow de **n8n** recibe leads por **Webhook**, valida y normaliza los datos, **responde 202** de inmediato, **crea una reunión con Google Meet**, realiza **deduplicación** contra Google Sheets y **persiste** el lead si no existe. Además, **envía un email de confirmación** con el link de Meet y **registra los errores 400** en una pestaña `Errors` del mismo spreadsheet.
 
 > Este README acompaña el flujo que subiste (`My workflow (3).json`). Los nombres de nodos que se mencionan abajo coinciden con tu JSON (p. ej., *“Introducción de webhook”*, *“Sanitizar & Enriquecer”*, etc.).
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 
 ---
 
 ## 🧭 Diagrama (alto nivel)
 
 ```
-<<<<<<< HEAD
-Webhook (POST /leads-meet-zz) → Sanitizar & Enriquecer → IF Validar
-  ├─ ✅ Válido:
-  │    → Generar URL de Calendly (Set)
-  │         → Responder 200 OK (con JSON y bookingUrl)
-  └─ ❌ Inválido:
-       → Responder 400 (no válido)
-=======
 Webhook (POST) → Sanitizar & Enriquecer → IF Validar
   ├─ ✅ Válido:
   │    → Respondedor 202 (rápido) → Calcular Slot de Cita
@@ -36,33 +19,11 @@ Webhook (POST) → Sanitizar & Enriquecer → IF Validar
   │               └─ Ya existe → Enviar Email con Meet (opcional mantener)
   └─ ❌ Inválido:
        → Responder 400 (no válido) → Preparar Log Error → Sheets - Log Error (Append)
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 ```
 
 ---
 
 ## 🚀 Qué hace hoy (features)
-<<<<<<< HEAD
-- **Webhook principal:** `POST /webhook/leads-meet-zz`
-- **Sanitización:** elimina espacios (`trim`), convierte el `email` a minúsculas, y agrega:
-  - `source` (por defecto `"web"`)
-  - `userAgent`, `ip` y `receivedAt`
-- **Validación:** comprueba que `name` no esté vacío y `email` tenga un formato correcto (regex estándar).
-- **Calendly dinámico:** construye un link como:
-  ```
-  https://calendly.com/alvaro-quiroga-tw/30min?name={{name}}&email={{email}}
-  ```
-- **Respuesta OK:** devuelve un JSON con:
-  ```json
-  {
-    "ok": true,
-    "status": "accepted",
-    "message": "Lead procesado exitosamente",
-    "bookingUrl": "https://calendly.com/alvaro-quiroga-tw/30min?name=..."
-  }
-  ```
-- **Respuesta 400:** si el lead no es válido, devuelve JSON con error.
-=======
 - **Webhook**: recibe `name`, `email`, `source` (y opcional `meeting_at`).
 - **Sanitización**: `trim` de `name`, `lowercase` de `email`, captura `IP`, `UserAgent`, `receivedAt`.
 - **Validación**: `name` no vacío y `email` con regex estándar.
@@ -72,19 +33,10 @@ Webhook (POST) → Sanitizar & Enriquecer → IF Validar
 - **Persistencia**: guarda `Name, Email, Source, IP, UserAgent, ReceivedAt, ProcessedAt, EventId, MeetLink, MeetingStart, Status`.
 - **Confirmación al cliente**: envía **Email con el link de Meet** y la hora programada.
 - **Trazabilidad de errores**: si el lead es inválido, responde **400** y registra una fila en la pestaña **`Errors`**.
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 
 ---
 
 ## ✅ Requisitos previos
-<<<<<<< HEAD
-- **n8n** en ejecución (Docker, EC2, o local).
-- Webhook expuesto en HTTPS (por Caddy o dominio):
-  ```
-  https://n8n.3-134-22-156.sslip.io/webhook/leads-meet-zz
-  ```
-- Frontend (React/Christal) configurado para enviar los leads con `fetch` o `axios`.
-=======
 - **n8n** en ejecución (Docker/EC2).
 - Credenciales en **Settings → Credentials**:
   - **Google Calendar OAuth2** (lectura/escritura del calendario).
@@ -95,28 +47,10 @@ Webhook (POST) → Sanitizar & Enriquecer → IF Validar
     `Name | Email | Source | IP | UserAgent | ReceivedAt | ProcessedAt | EventId | MeetLink | MeetingStart | Status`
   - `Errors` con encabezados:  
     `Name | Email | Source | IP | UserAgent | ReceivedAt | ProcessedAt | ErrorCode | ErrorReason`
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 
 ---
 
 ## ⚙️ Configuración paso a paso
-<<<<<<< HEAD
-1) **Importar** `My workflow 5 (15).json` en tu n8n.
-2) Asegurarte que los nodos estén activos:
-   - `Webhook POST1` → `path: leads-meet-zz`
-   - `Sanitizar & Enriquecer1`
-   - `Validar lead1`
-   - `Calendly (URL)1`
-   - `Respond 200 OK1`
-   - `Respond 400 (no válido)1`
-   - `Webhook OPTIONS (CORS)` + `Respond 204 (CORS)1`
-3) En `Respond 200 OK1`, revisar que el **header CORS** sea:
-   ```
-   Access-Control-Allow-Origin: *
-   Access-Control-Allow-Methods: GET,POST,OPTIONS
-   Access-Control-Allow-Headers: Content-Type,Authorization
-   ```
-=======
 1) **Importar** el JSON del workflow en n8n.  
 2) Abrir los nodos y **asignar credenciales**:
    - **Google Calendar** (nodo *“Google Calendar”* o *“Crear Evento (Google Meet)”*).
@@ -131,40 +65,10 @@ Webhook (POST) → Sanitizar & Enriquecer → IF Validar
    - Confirmar la **ruta** (`/webhook/leads-meet`). Cambiala por una menos predecible si querés.
 
 > **Importante sobre expresiones**: Si renombrás nodos, actualizá las **expresiones** que hacen referencia a otros nodos (deben coincidir 1:1 con el nombre del nodo).
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 
 ---
 
 ## 🧪 Pruebas
-<<<<<<< HEAD
-
-### 1️⃣ Lead válido
-```bash
-curl -X POST "https://n8n.3-134-22-156.sslip.io/webhook/leads-meet-zz"   -H "Content-Type: application/json"   -d '{"name":"Yanina Spina","email":"yanina_05_196@hotmail.com"}'
-```
-**Respuesta esperada:**
-```json
-{
-  "ok": true,
-  "status": "accepted",
-  "message": "Lead procesado exitosamente",
-  "bookingUrl": "https://calendly.com/alvaro-quiroga-tw/30min?name=Yanina%20Spina&email=yanina_05_196@hotmail.com"
-}
-```
-
-### 2️⃣ Lead inválido
-```bash
-curl -X POST "https://n8n.3-134-22-156.sslip.io/webhook/leads-meet-zz"   -H "Content-Type: application/json"   -d '{"name":"","email":"correo_invalido"}'
-```
-**Respuesta esperada:**
-```json
-{
-  "ok": false,
-  "status": "error",
-  "message": "Lead no válido"
-}
-```
-=======
 - **Lead válido (nuevo)**  
   POST al webhook con:
   ```json
@@ -177,16 +81,10 @@ curl -X POST "https://n8n.3-134-22-156.sslip.io/webhook/leads-meet-zz"   -H "Con
 
 - **Lead inválido** (sin email o nombre vacío)  
   **Esperado**: HTTP 400 con JSON; nueva fila en `Errors`.
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 
 ---
 
 ## 🧯 Troubleshooting
-<<<<<<< HEAD
-- **CORS error en frontend** → confirmar cabeceras `Access-Control-*` en ambos `Respond` (200 y 400) y en `OPTIONS`.
-- **Campos vacíos en respuesta** → revisar que el `Webhook POST` tenga `Response Mode: responseNode` y reciba body como JSON.
-- **Calendly sin datos** → asegurarse que `$json.name` y `$json.email` están en el nivel raíz (no en `$json.body`).
-=======
 - **No se crea el evento** → revisá credencial de Calendar y que el nodo reciba `startISO/endISO` desde *“Calcular Slot de Cita”*.
 - **No hace dedupe** → confirmar `lookupColumn = B`, `range = Leads!A:K` y **Always Output Data**.
 - **No persiste en Sheets** → setear correctamente `documentId`/`sheetName` y permisos de la cuenta.
@@ -201,18 +99,13 @@ curl -X POST "https://n8n.3-134-22-156.sslip.io/webhook/leads-meet-zz"   -H "Con
 - (Opcional) **Resumen diario** de todas las reuniones a la dueña (tabla HTML).
 
 > Estos módulos se pueden agregar como **workflows adicionales**, sin tocar el de ingesta de leads.
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
 
 ---
 
 ## 📄 Licencia
-<<<<<<< HEAD
-MIT (uso libre y personalizable).
-=======
-MIT (o la que prefieras).
+
 
 ---
 
 ## ✍️ Notas
 - Si necesitás que los duplicados **actualicen** la misma fila en lugar de ignorarse, podemos cambiar *“Append”* por *“Update (By Key)”* tomando `Email` como clave.
->>>>>>> 723d906ff91061db27cf9cc0336e8efc023bb03a
