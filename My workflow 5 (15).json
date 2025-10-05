@@ -1,0 +1,261 @@
+{
+  "name": "My workflow 5",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://TU-DOMINIO.com"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET,POST,OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type,Authorization"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b8d6c745-16fe-4d31-a7e7-63233d8ce59c",
+      "name": "Respond 204 (CORS)1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        1504
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "OPTIONS",
+        "path": "leads-meet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "566e37f6-a6ec-42e1-8f19-38ef34fda357",
+      "name": "Webhook OPTIONS (CORS)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        1520
+      ],
+      "webhookId": "7a473d43-8cfa-4a50-b729-79839880a24f"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads-meet-zz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e6d62cc5-1e3f-4216-a908-c05ffb01ea4a",
+      "name": "Webhook POST1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        1296
+      ],
+      "webhookId": "53254eac-f12a-4f00-bc9c-4181ee7a6ca9"
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const j = item.json || {};\n  const body = j.body || {};      // <— los datos del POST vienen aquí\n  const headers = j.headers || {};\n\n  const trim  = v => typeof v === 'string' ? v.trim() : v;\n  const lower = v => typeof v === 'string' ? v.toLowerCase() : v;\n\n  const name  = trim(body.name || '');\n  const email = lower(trim(body.email || ''));\n  const source = lower(trim(body.source || 'web'));\n\n  const ua  = headers['user-agent'] || headers['User-Agent'] || '';\n  const xff = headers['x-forwarded-for'] || headers['X-Forwarded-For'] || '';\n  const ip  = (xff && String(xff).split(',')[0].trim()) ||\n              headers['x-real-ip'] || headers['X-Real-IP'] || '';\n\n  return { json: { ...body, name, email, source, userAgent: ua, ip, receivedAt: new Date().toISOString() } };\n});\n\n"
+      },
+      "id": "af3587e2-751e-4eed-9297-adb7a9c73150",
+      "name": "Sanitizar & Enriquecer1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.name}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.email}}",
+              "operation": "regex",
+              "value2": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
+            }
+          ]
+        }
+      },
+      "id": "f78c8adc-a89b-4656-9cb9-5015e676ffb9",
+      "name": "Validar lead1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={\n  \"ok\": true,\n  \"status\": \"accepted\",\n  \"message\": \"Lead procesado exitosamente\",\n  \"bookingUrl\": \"https://calendly.com/alvaro-quiroga-tw/30min\"\n}\n",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET,POST,OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type,Authorization"
+              }
+            ]
+          }
+        }
+      },
+      "id": "51fa6a2a-aa68-4505-8ce3-79a398f3d6a8",
+      "name": "Respond 200 OK1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        112,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://TU-DOMINIO.com"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET,POST,OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type,Authorization"
+              }
+            ]
+          }
+        }
+      },
+      "id": "85ae4298-69b5-436e-b046-e0258f048494",
+      "name": "Respond 400 (no válido)1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        368,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"parameters\": {\n    \"assignments\": {\n      \"assignments\": [\n        {\n          \"name\": \"bookingUrl\",\n          \"value\": \"={{ 'https://calendly.com/alvaro-quiroga-tw/30min?name=' + encodeURIComponent($json.name || $json.nombre || '') + '&email=' + encodeURIComponent($json.email || '') }}\",\n          \"type\": \"string\"\n        }\n      ]\n    },\n    \"includeOtherFields\": true\n  },\n  \"name\": \"Calendly (URL)\",\n  \"type\": \"n8n-nodes-base.set\",\n  \"typeVersion\": 3.4,\n  \"position\": [ -200, 100 ]\n}\n\n",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        1200
+      ],
+      "id": "b8dfade9-1330-4c92-a7e6-13d547f5c2b4",
+      "name": "Calendly (URL)1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook OPTIONS (CORS)": {
+      "main": [
+        [
+          {
+            "node": "Respond 204 (CORS)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook POST1": {
+      "main": [
+        [
+          {
+            "node": "Sanitizar & Enriquecer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitizar & Enriquecer1": {
+      "main": [
+        [
+          {
+            "node": "Validar lead1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar lead1": {
+      "main": [
+        [
+          {
+            "node": "Calendly (URL)1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400 (no válido)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendly (URL)1": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5c7d62d5-5771-4c76-b311-3100ab6ed2a8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7f78f260dbf3c2ea2946dfa3109d616ddb356c7803fd158d9d59e9126f93d2bf"
+  },
+  "id": "JZNtGzQF1DnqaK2Z",
+  "tags": []
+}
